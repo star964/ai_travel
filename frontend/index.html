@@ -1,0 +1,1705 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <title>旅见 AI - 智能旅游攻略</title>
+
+    <!-- Markdown 解析 -->
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+
+    <!-- HTML 安全过滤 -->
+    <script src="https://cdn.jsdelivr.net/npm/dompurify@3.1.6/dist/purify.min.js"></script>
+
+    <style>
+        :root {
+            --primary: #0b8f87;
+            --primary-dark: #076b68;
+            --orange: #ff9f43;
+            --text: #20363c;
+            --muted: #78909c;
+            --white: rgba(255, 255, 255, 0.94);
+            --shadow: 0 18px 50px rgba(31, 94, 100, 0.16);
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        html {
+            scroll-behavior: smooth;
+        }
+
+        body {
+            margin: 0;
+            min-height: 100vh;
+            font-family: "Microsoft YaHei", "PingFang SC", Arial, sans-serif;
+            color: var(--text);
+
+            background:
+                linear-gradient(
+                    rgba(237, 250, 248, 0.84),
+                    rgba(245, 250, 255, 0.96)
+                ),
+                url("https://images.unsplash.com/photo-1500534623283-312aade485b7?auto=format&fit=crop&w=2000&q=85")
+                center / cover fixed;
+        }
+
+        body::before {
+            content: "";
+            position: fixed;
+            top: 100px;
+            left: -180px;
+
+            width: 380px;
+            height: 380px;
+
+            border-radius: 50%;
+            background: rgba(92, 203, 191, 0.18);
+            filter: blur(10px);
+            pointer-events: none;
+        }
+
+        body::after {
+            content: "";
+            position: fixed;
+            right: -140px;
+            bottom: 80px;
+
+            width: 330px;
+            height: 330px;
+
+            border-radius: 50%;
+            background: rgba(255, 185, 92, 0.2);
+            filter: blur(12px);
+            pointer-events: none;
+        }
+
+        .page {
+            position: relative;
+            z-index: 1;
+
+            width: 92%;
+            max-width: 1280px;
+            margin: 0 auto;
+            padding: 22px 0 55px;
+        }
+
+        /* 顶部导航 */
+
+        .navbar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 48px;
+        }
+
+        .brand {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+
+            color: var(--primary-dark);
+            font-size: 22px;
+            font-weight: 800;
+        }
+
+        .brand-icon {
+            display: grid;
+            place-items: center;
+
+            width: 43px;
+            height: 43px;
+            border-radius: 14px;
+
+            color: white;
+            background: linear-gradient(135deg, #16b8a8, #086d72);
+            box-shadow: 0 8px 18px rgba(11, 143, 135, 0.25);
+
+            font-size: 23px;
+        }
+
+        .nav-tip {
+            padding: 9px 16px;
+            border: 1px solid rgba(11, 143, 135, 0.2);
+            border-radius: 30px;
+
+            color: var(--primary-dark);
+            background: rgba(255, 255, 255, 0.65);
+            font-size: 14px;
+        }
+
+        /* 标题区域 */
+
+        .hero {
+            max-width: 780px;
+            margin: 0 auto 35px;
+            text-align: center;
+        }
+
+        .hero-tag {
+            display: inline-flex;
+            align-items: center;
+            gap: 7px;
+
+            padding: 8px 15px;
+            border-radius: 30px;
+
+            color: #b26b16;
+            background: rgba(255, 190, 97, 0.2);
+
+            font-size: 14px;
+            font-weight: bold;
+        }
+
+        .hero h1 {
+            margin: 16px 0 12px;
+            color: #075f68;
+
+            font-size: clamp(32px, 5vw, 54px);
+            letter-spacing: 2px;
+            line-height: 1.2;
+        }
+
+        .hero h1 span {
+            color: var(--orange);
+        }
+
+        .hero p {
+            margin: 0;
+            color: #66838a;
+            font-size: 17px;
+            line-height: 1.8;
+        }
+
+        /* 主体布局 */
+
+        .main-layout {
+            display: grid;
+            grid-template-columns: 380px minmax(0, 1fr);
+            gap: 26px;
+            align-items: start;
+        }
+
+        .card {
+            border: 1px solid rgba(255, 255, 255, 0.75);
+            border-radius: 25px;
+
+            background: var(--white);
+            box-shadow: var(--shadow);
+            backdrop-filter: blur(14px);
+        }
+
+        /* 左侧表单 */
+
+        .form-card {
+            padding: 27px;
+        }
+
+        .card-title {
+            display: flex;
+            align-items: center;
+            gap: 11px;
+
+            margin: 0 0 24px;
+            color: #096f75;
+            font-size: 23px;
+        }
+
+        .title-icon {
+            display: grid;
+            place-items: center;
+
+            width: 38px;
+            height: 38px;
+            border-radius: 12px;
+
+            color: white;
+            background: linear-gradient(135deg, #20b8a9, #087d82);
+            font-size: 19px;
+        }
+
+        .field {
+            margin-bottom: 18px;
+        }
+
+        .field label {
+            display: block;
+            margin-bottom: 8px;
+
+            color: #48646b;
+            font-size: 14px;
+            font-weight: bold;
+        }
+
+        .input-wrap {
+            position: relative;
+        }
+
+        .input-icon {
+            position: absolute;
+            top: 50%;
+            left: 14px;
+
+            transform: translateY(-50%);
+            font-size: 18px;
+            pointer-events: none;
+        }
+
+        .input-wrap input {
+            padding-left: 45px;
+        }
+
+        input,
+        textarea {
+            width: 100%;
+
+            border: 1px solid #d7e5e7;
+            border-radius: 13px;
+            outline: none;
+
+            color: var(--text);
+            background: rgba(255, 255, 255, 0.8);
+
+            font-family: inherit;
+            font-size: 15px;
+
+            transition: 0.25s;
+        }
+
+        input {
+            height: 49px;
+            padding: 0 14px;
+        }
+
+        textarea {
+            min-height: 105px;
+            padding: 13px 14px;
+
+            resize: vertical;
+            line-height: 1.6;
+        }
+
+        input:focus,
+        textarea:focus {
+            border-color: #19a99d;
+            background: white;
+            box-shadow: 0 0 0 4px rgba(25, 169, 157, 0.12);
+        }
+
+        /* 热门目的地 */
+
+        .quick-title {
+            margin: 4px 0 10px;
+            color: #78909c;
+            font-size: 13px;
+        }
+
+        .quick-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-bottom: 22px;
+        }
+
+        .quick-btn {
+            padding: 7px 12px;
+
+            border: 1px solid #c9e6e3;
+            border-radius: 20px;
+
+            color: #167d7a;
+            background: #effaf8;
+
+            cursor: pointer;
+            font-family: inherit;
+            transition: 0.2s;
+        }
+
+        .quick-btn:hover {
+            color: white;
+            background: var(--primary);
+            transform: translateY(-2px);
+        }
+
+        .generate-btn {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 9px;
+
+            width: 100%;
+            height: 54px;
+            margin-top: 6px;
+
+            border: none;
+            border-radius: 15px;
+
+            color: white;
+            background: linear-gradient(135deg, #13b5a6, #087b83);
+            box-shadow: 0 11px 22px rgba(8, 123, 131, 0.22);
+
+            cursor: pointer;
+            font-family: inherit;
+            font-size: 17px;
+            font-weight: bold;
+
+            transition: 0.25s;
+        }
+
+        .generate-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 16px 28px rgba(8, 123, 131, 0.3);
+        }
+
+        .generate-btn:disabled {
+            cursor: not-allowed;
+            opacity: 0.72;
+            transform: none;
+        }
+
+        /* 右侧结果 */
+
+        .result-card {
+            min-height: 620px;
+            overflow: hidden;
+        }
+
+        .result-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+
+            padding: 25px 29px;
+            border-bottom: 1px solid #e9f1f1;
+
+            background: linear-gradient(
+                135deg,
+                rgba(236, 251, 248, 0.9),
+                rgba(255, 255, 255, 0.7)
+            );
+        }
+
+        .result-header .card-title {
+            margin: 0;
+        }
+
+        .ai-badge {
+            padding: 7px 12px;
+            border-radius: 20px;
+
+            color: #137d78;
+            background: #dff7f2;
+
+            font-size: 13px;
+            font-weight: bold;
+        }
+
+        .status {
+            min-height: 25px;
+            padding: 18px 29px 0;
+
+            color: #78909c;
+            font-size: 14px;
+        }
+
+        .result-content {
+            padding: 7px 29px 35px;
+            color: #425c63;
+
+            line-height: 1.85;
+            font-size: 15px;
+        }
+
+        .empty {
+            display: flex;
+            min-height: 480px;
+
+            align-items: center;
+            justify-content: center;
+            flex-direction: column;
+
+            color: #91a9ad;
+            text-align: center;
+        }
+
+        .empty-icon {
+            margin-bottom: 17px;
+            font-size: 63px;
+            opacity: 0.8;
+        }
+
+        /* 攻略 Markdown 样式 */
+
+        .result-content h1,
+        .result-content h2,
+        .result-content h3 {
+            margin: 25px 0 13px;
+            color: #087b7b;
+            line-height: 1.4;
+        }
+
+        .result-content h1 {
+            font-size: 25px;
+        }
+
+        .result-content h2 {
+            padding-bottom: 8px;
+            border-bottom: 1px solid #dcefeb;
+            font-size: 21px;
+        }
+
+        .result-content h3 {
+            color: #c87524;
+            font-size: 18px;
+        }
+
+        .result-content ul,
+        .result-content ol {
+            padding-left: 24px;
+        }
+
+        .result-content li {
+            margin: 8px 0;
+            padding-left: 4px;
+        }
+
+        .result-content li::marker {
+            color: var(--orange);
+            font-weight: bold;
+        }
+
+        .result-content strong {
+            color: #126e72;
+        }
+
+        .result-content blockquote {
+            margin: 18px 0;
+            padding: 13px 17px;
+
+            border-left: 4px solid var(--orange);
+            border-radius: 8px;
+
+            color: #607d84;
+            background: #fff8ed;
+        }
+
+        .result-content hr {
+            margin: 22px 0;
+            border: none;
+            border-top: 1px solid #e3eeee;
+        }
+
+        /* 加载动画 */
+
+        .loading {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            color: var(--primary);
+        }
+
+        .dot {
+            width: 9px;
+            height: 9px;
+
+            border-radius: 50%;
+            background: var(--primary);
+
+            animation: bounce 1.2s infinite ease-in-out;
+        }
+
+        .dot:nth-child(2) {
+            animation-delay: 0.15s;
+        }
+
+        .dot:nth-child(3) {
+            animation-delay: 0.3s;
+        }
+
+        @keyframes bounce {
+            0%,
+            80%,
+            100% {
+                transform: scale(0.6);
+                opacity: 0.5;
+            }
+
+            40% {
+                transform: scale(1);
+                opacity: 1;
+            }
+        }
+
+        .error {
+            margin: 20px 29px;
+            padding: 15px;
+
+            border-radius: 12px;
+
+            color: #b42318;
+            background: #fff0ef;
+
+            line-height: 1.7;
+        }
+
+        /* 浮动聊天按钮 */
+
+        .chat-float-btn {
+            position: fixed;
+            right: 28px;
+            bottom: 28px;
+            z-index: 1000;
+
+            display: flex;
+            align-items: center;
+            gap: 8px;
+
+            padding: 13px 18px;
+
+            border: none;
+            border-radius: 30px;
+
+            color: white;
+            background: linear-gradient(135deg, #ff9f43, #f07838);
+            box-shadow: 0 10px 25px rgba(226, 119, 45, 0.35);
+
+            cursor: pointer;
+            font-family: inherit;
+            font-size: 16px;
+            font-weight: bold;
+
+            transition: 0.25s;
+        }
+
+        .chat-float-btn span {
+            font-size: 23px;
+        }
+
+        .chat-float-btn small {
+            font-size: 14px;
+        }
+
+        .chat-float-btn:hover {
+            transform: translateY(-4px) scale(1.03);
+        }
+
+        /* 聊天窗口 */
+
+        .chat-panel {
+            position: fixed;
+            right: 28px;
+            bottom: 92px;
+            z-index: 999;
+
+            display: none;
+            flex-direction: column;
+
+            width: 390px;
+            height: 590px;
+
+            overflow: hidden;
+
+            border: 1px solid rgba(255, 255, 255, 0.9);
+            border-radius: 22px;
+
+            background: rgba(255, 255, 255, 0.97);
+            box-shadow: 0 20px 60px rgba(35, 80, 85, 0.3);
+
+            animation: chatShow 0.25s ease;
+        }
+
+        .chat-panel.show {
+            display: flex;
+        }
+
+        @keyframes chatShow {
+            from {
+                opacity: 0;
+                transform: translateY(18px) scale(0.96);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0) scale(1);
+            }
+        }
+
+        /* 聊天标题 */
+
+        .chat-header {
+            display: flex;
+            flex: 0 0 auto;
+            align-items: center;
+            justify-content: space-between;
+
+            padding: 18px 20px;
+
+            color: white;
+            background: linear-gradient(135deg, #087b83, #12a99d);
+        }
+
+        .chat-header strong {
+            font-size: 17px;
+        }
+
+        .chat-header p {
+            margin: 5px 0 0;
+            opacity: 0.85;
+            font-size: 12px;
+        }
+
+        .chat-close-btn {
+            padding: 0;
+            border: none;
+
+            color: white;
+            background: transparent;
+
+            cursor: pointer;
+            font-size: 28px;
+            line-height: 1;
+        }
+
+        /* 聊天消息区域 */
+
+        .chat-messages {
+            flex: 1;
+            min-height: 0;
+            overflow-y: auto;
+
+            padding: 17px;
+            background: #f5fbfa;
+        }
+
+        .chat-message {
+            display: flex;
+            align-items: flex-start;
+            gap: 9px;
+
+            width: 100%;
+            margin-bottom: 16px;
+        }
+
+        .ai-message {
+            justify-content: flex-start;
+        }
+
+        .user-message {
+            justify-content: flex-end;
+        }
+
+        .message-avatar {
+            display: grid;
+            flex: 0 0 auto;
+            place-items: center;
+
+            width: 30px;
+            height: 30px;
+
+            border-radius: 50%;
+
+            color: white;
+            background: #0b9891;
+
+            font-size: 11px;
+            font-weight: bold;
+        }
+
+        .user-message .message-avatar {
+            order: 2;
+            background: #f39a3d;
+        }
+
+        .message-bubble {
+            flex: 0 1 auto;
+            width: auto;
+            max-width: 82%;
+
+            padding: 12px 15px;
+            border-radius: 15px;
+
+            color: #405b60;
+            background: white;
+            box-shadow: 0 3px 10px rgba(41, 96, 100, 0.08);
+
+            font-size: 14px;
+            line-height: 1.65;
+            text-align: left;
+
+            word-break: break-word;
+            overflow-wrap: anywhere;
+        }
+
+        .user-message .message-bubble {
+            color: white;
+            background: linear-gradient(135deg, #0b9d96, #087a83);
+        }
+
+        /* 聊天内容格式 */
+
+        .message-bubble p {
+            margin: 0 0 9px;
+        }
+
+        .message-bubble p:last-child {
+            margin-bottom: 0;
+        }
+
+        .message-bubble h1,
+        .message-bubble h2,
+        .message-bubble h3 {
+            margin: 5px 0 8px;
+            color: #087b83;
+            line-height: 1.45;
+        }
+
+        .message-bubble h1 {
+            font-size: 17px;
+        }
+
+        .message-bubble h2 {
+            font-size: 16px;
+        }
+
+        .message-bubble h3 {
+            font-size: 15px;
+        }
+
+        .message-bubble ul,
+        .message-bubble ol {
+            margin: 6px 0;
+            padding-left: 20px;
+        }
+
+        .message-bubble li {
+            margin: 4px 0;
+        }
+
+        .message-bubble strong {
+            color: #087b83;
+        }
+
+        .message-bubble blockquote {
+            margin: 8px 0;
+            padding: 7px 10px;
+
+            border-left: 3px solid #ff9f43;
+            border-radius: 5px;
+
+            background: #fff7ed;
+        }
+
+        .message-bubble hr {
+            margin: 10px 0;
+            border: none;
+            border-top: 1px solid #e1eceb;
+        }
+
+        .user-message .message-bubble strong {
+            color: white;
+        }
+
+        /* 快捷问题 */
+
+        .chat-suggestions {
+            display: flex;
+            flex: 0 0 auto;
+            gap: 7px;
+
+            overflow-x: auto;
+            padding: 10px 13px 5px;
+
+            border-top: 1px solid #e4efed;
+            background: white;
+        }
+
+        .chat-suggestions button {
+            flex: 0 0 auto;
+
+            padding: 6px 9px;
+
+            border: 1px solid #c9e7e3;
+            border-radius: 15px;
+
+            color: #287d7b;
+            background: #f0fbf9;
+
+            cursor: pointer;
+            font-family: inherit;
+            font-size: 12px;
+        }
+
+        .chat-suggestions button:hover {
+            color: white;
+            background: #0b9891;
+        }
+
+        /* 聊天输入区域 */
+
+        .chat-input-area {
+            display: flex;
+            flex: 0 0 auto;
+            align-items: flex-end;
+            gap: 8px;
+
+            padding: 12px;
+            background: white;
+        }
+
+        .chat-input-area textarea {
+            flex: 1;
+
+            min-height: 45px;
+            max-height: 90px;
+            padding: 10px;
+
+            border-radius: 12px;
+
+            resize: none;
+            font-size: 13px;
+            line-height: 1.5;
+        }
+
+        .chat-input-area button {
+            flex: 0 0 auto;
+
+            height: 43px;
+            padding: 0 15px;
+
+            border: none;
+            border-radius: 11px;
+
+            color: white;
+            background: #0b9891;
+
+            cursor: pointer;
+            font-family: inherit;
+            font-weight: bold;
+        }
+
+        .chat-input-area button:hover {
+            background: #087d78;
+        }
+
+        .chat-input-area button:disabled {
+            cursor: not-allowed;
+            background: #9eb8b8;
+        }
+
+        .chat-loading {
+            color: #78909c;
+            font-size: 13px;
+            font-style: italic;
+        }
+
+        /* 页面响应式 */
+
+        @media (max-width: 850px) {
+            .navbar {
+                margin-bottom: 30px;
+            }
+
+            .nav-tip {
+                display: none;
+            }
+
+            .main-layout {
+                grid-template-columns: 1fr;
+            }
+
+            .result-card {
+                min-height: 500px;
+            }
+        }
+
+        @media (max-width: 520px) {
+            .page {
+                width: 94%;
+                padding-top: 15px;
+            }
+
+            .hero h1 {
+                font-size: 32px;
+            }
+
+            .hero p {
+                font-size: 15px;
+            }
+
+            .form-card,
+            .result-header,
+            .result-content {
+                padding-left: 20px;
+                padding-right: 20px;
+            }
+
+            .status {
+                padding-left: 20px;
+                padding-right: 20px;
+            }
+
+            .chat-panel {
+                right: 10px;
+                bottom: 82px;
+
+                width: calc(100vw - 20px);
+                height: min(570px, calc(100vh - 105px));
+            }
+
+            .chat-float-btn {
+                right: 15px;
+                bottom: 15px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="page">
+
+        <!-- 顶部导航 -->
+
+        <nav class="navbar">
+            <div class="brand">
+                <div class="brand-icon">✈</div>
+                <span>旅见 AI</span>
+            </div>
+
+            <div class="nav-tip">
+                让每一次出发，都值得期待 ✨
+            </div>
+        </nav>
+
+        <!-- 标题区域 -->
+
+        <header class="hero">
+            <div class="hero-tag">
+                ✦ AI 智能旅行规划师
+            </div>
+
+            <h1>
+                去探索，去发现
+                <br>
+                <span>你的下一站</span>
+            </h1>
+
+            <p>
+                告诉我们你的目的地和偏好，AI 将为你定制一份专属旅行攻略
+            </p>
+        </header>
+
+        <main class="main-layout">
+
+            <!-- 左侧输入区域 -->
+
+            <section class="card form-card">
+                <h2 class="card-title">
+                    <span class="title-icon">✎</span>
+                    规划你的旅程
+                </h2>
+
+                <div class="field">
+                    <label for="destination">
+                        你想去哪里？
+                    </label>
+
+                    <div class="input-wrap">
+                        <span class="input-icon">📍</span>
+
+                        <input
+                            id="destination"
+                            type="text"
+                            placeholder="例如：成都、东京、巴黎"
+                        >
+                    </div>
+                </div>
+
+                <div class="quick-title">
+                    热门目的地
+                </div>
+
+                <div class="quick-list">
+                    <button
+                        class="quick-btn"
+                        type="button"
+                        data-city="成都"
+                    >
+                        成都
+                    </button>
+
+                    <button
+                        class="quick-btn"
+                        type="button"
+                        data-city="杭州"
+                    >
+                        杭州
+                    </button>
+
+                    <button
+                        class="quick-btn"
+                        type="button"
+                        data-city="三亚"
+                    >
+                        三亚
+                    </button>
+
+                    <button
+                        class="quick-btn"
+                        type="button"
+                        data-city="东京"
+                    >
+                        东京
+                    </button>
+
+                    <button
+                        class="quick-btn"
+                        type="button"
+                        data-city="巴黎"
+                    >
+                        巴黎
+                    </button>
+                </div>
+
+                <div class="field">
+                    <label for="days">
+                        准备旅行几天？
+                    </label>
+
+                    <div class="input-wrap">
+                        <span class="input-icon">🗓</span>
+
+                        <input
+                            id="days"
+                            type="number"
+                            min="1"
+                            max="30"
+                            placeholder="例如：3"
+                        >
+                    </div>
+                </div>
+
+                <div class="field">
+                    <label for="budget">
+                        预计旅行预算
+                    </label>
+
+                    <div class="input-wrap">
+                        <span class="input-icon">💰</span>
+
+                        <input
+                            id="budget"
+                            type="text"
+                            placeholder="例如：3000元"
+                        >
+                    </div>
+                </div>
+
+                <div class="field">
+                    <label for="preference">
+                        你喜欢什么？
+                    </label>
+
+                    <textarea
+                        id="preference"
+                        placeholder="例如：美食、自然风景、拍照、历史文化、亲子活动……"
+                    ></textarea>
+                </div>
+
+                <button
+                    class="generate-btn"
+                    id="generateBtn"
+                    type="button"
+                >
+                    <span>✦</span>
+                    <span>生成我的专属攻略</span>
+                </button>
+            </section>
+
+            <!-- 右侧 AI 结果 -->
+
+            <section class="card result-card">
+                <div class="result-header">
+                    <h2 class="card-title">
+                        <span class="title-icon">✈</span>
+                        专属旅行攻略
+                    </h2>
+
+                    <div class="ai-badge">
+                        AI GENERATED
+                    </div>
+                </div>
+
+                <div
+                    class="status"
+                    id="status"
+                ></div>
+
+                <div
+                    class="result-content"
+                    id="result"
+                >
+                    <div class="empty">
+                        <div class="empty-icon">🧳</div>
+
+                        <div>
+                            你的下一段旅程，正在等待规划
+                        </div>
+
+                        <small>
+                            填写左侧信息，开始生成专属攻略
+                        </small>
+                    </div>
+                </div>
+            </section>
+
+        </main>
+    </div>
+
+    <!-- 唯一的旅行助手按钮 -->
+
+    <button
+        class="chat-float-btn"
+        id="chatFloatBtn"
+        type="button"
+    >
+        <span>💬</span>
+        <small>旅行助手</small>
+    </button>
+
+    <!-- 唯一的聊天窗口 -->
+
+    <div
+        class="chat-panel"
+        id="chatPanel"
+    >
+        <div class="chat-header">
+            <div>
+                <strong>🧭 旅途应急助手</strong>
+                <p>遇到问题，随时问我</p>
+            </div>
+
+            <button
+                class="chat-close-btn"
+                id="chatCloseBtn"
+                type="button"
+                aria-label="关闭聊天窗口"
+            >
+                ×
+            </button>
+        </div>
+
+        <div
+            class="chat-messages"
+            id="chatMessages"
+        >
+            <div class="chat-message ai-message">
+                <div class="message-avatar">
+                    AI
+                </div>
+
+                <div class="message-bubble">
+                    <p>你好，我是你的旅行途中助手。</p>
+
+                    <p>
+                        如果遇到天气变化、交通延误、景点关闭等情况，可以告诉我，我会帮你调整行程。
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <div class="chat-suggestions">
+            <button
+                type="button"
+                data-question="下雨了，请帮我调整今天的户外行程"
+            >
+                🌧️ 下雨了
+            </button>
+
+            <button
+                type="button"
+                data-question="交通延误了，请帮我重新安排接下来的行程"
+            >
+                🚇 交通延误
+            </button>
+
+            <button
+                type="button"
+                data-question="我现在只有半天时间了，应该优先去哪几个地方？"
+            >
+                ⏱️ 时间不够
+            </button>
+
+            <button
+                type="button"
+                data-question="附近有什么适合我的美食推荐？"
+            >
+                🍜 美食推荐
+            </button>
+        </div>
+
+        <div class="chat-input-area">
+            <textarea
+                id="chatInput"
+                placeholder="描述你遇到的情况，例如：景点临时关闭了……"
+                rows="2"
+            ></textarea>
+
+            <button
+                id="sendChatBtn"
+                type="button"
+            >
+                发送
+            </button>
+        </div>
+    </div>
+
+    <!-- 所有 JavaScript 放在页面内容后面 -->
+
+    <script>        // 后端地址
+
+        const API_BASE_URL = "";
+
+        // ==================================================
+        // 旅行攻略生成功能
+        // ==================================================
+
+        const generateBtn =
+            document.getElementById("generateBtn");
+
+        const statusBox =
+            document.getElementById("status");
+
+        const resultBox =
+            document.getElementById("result");
+
+        const destinationInput =
+            document.getElementById("destination");
+
+        const daysInput =
+            document.getElementById("days");
+
+        const budgetInput =
+            document.getElementById("budget");
+
+        const preferenceInput =
+            document.getElementById("preference");
+
+        // 点击热门目的地
+        document.querySelectorAll(".quick-btn").forEach(function (button) {
+            button.addEventListener("click", function () {
+                destinationInput.value = this.dataset.city;
+                destinationInput.focus();
+            });
+        });
+
+        // 显示攻略错误
+        function showTravelError(message) {
+            statusBox.textContent = "";
+
+            resultBox.innerHTML = "";
+
+            const errorBox = document.createElement("div");
+            errorBox.className = "error";
+            errorBox.textContent = message;
+
+            resultBox.appendChild(errorBox);
+        }
+
+        // 生成旅行攻略
+        generateBtn.addEventListener("click", async function () {
+            const destination =
+                destinationInput.value.trim();
+
+            const days =
+                daysInput.value;
+
+            const budget =
+                budgetInput.value.trim();
+
+            const preference =
+                preferenceInput.value.trim();
+
+            if (!destination || !days || !budget || !preference) {
+                showTravelError(
+                    "请完整填写目的地、旅行天数、预算和旅行偏好。"
+                );
+
+                return;
+            }
+
+            if (Number(days) < 1 || Number(days) > 30) {
+                showTravelError(
+                    "旅行天数必须在 1 到 30 天之间。"
+                );
+
+                return;
+            }
+
+            generateBtn.disabled = true;
+
+            generateBtn.innerHTML = `
+                <span>⏳</span>
+                <span>AI 正在规划中...</span>
+            `;
+
+            statusBox.innerHTML = `
+                <div class="loading">
+                    <span class="dot"></span>
+                    <span class="dot"></span>
+                    <span class="dot"></span>
+                    <span>正在为你寻找最佳旅行方案，请稍候……</span>
+                </div>
+            `;
+
+            resultBox.innerHTML = "";
+
+            try {
+                const response = await fetch(
+                    API_BASE_URL + "/api/travel",
+                    {
+                        method: "POST",
+
+                        headers: {
+                            "Content-Type": "application/json"
+                        },
+
+                        body: JSON.stringify({
+                            destination: destination,
+                            days: Number(days),
+                            budget: budget,
+                            preference: preference
+                        })
+                    }
+                );
+
+                const data = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(
+                        data.detail ||
+                        data.message ||
+                        "旅行攻略接口请求失败"
+                    );
+                }
+
+                if (
+                    data.code === 0 &&
+                    data.data &&
+                    data.data.travel_plan
+                ) {
+                    statusBox.textContent =
+                        "攻略生成成功，已经保存到 MySQL 数据库。";
+
+                    const html = marked.parse(
+                        data.data.travel_plan
+                    );
+
+                    resultBox.innerHTML =
+                        DOMPurify.sanitize(html);
+
+                    document
+                        .querySelector(".result-card")
+                        .scrollIntoView({
+                            behavior: "smooth",
+                            block: "start"
+                        });
+                } else {
+                    throw new Error(
+                        data.error ||
+                        data.message ||
+                        "后端没有返回有效的旅行攻略"
+                    );
+                }
+
+            } catch (error) {
+                showTravelError(
+                    "生成失败，请检查 FastAPI 服务和 /api/travel 接口。\n错误信息：" +
+                    error.message
+                );
+
+                console.error("旅行攻略生成失败：", error);
+
+            } finally {
+                generateBtn.disabled = false;
+
+                generateBtn.innerHTML = `
+                    <span>✦</span>
+                    <span>生成我的专属攻略</span>
+                `;
+            }
+        });
+
+        // ==================================================
+        // 旅行途中 AI 助手
+        // ==================================================
+
+        const chatFloatBtn =
+            document.getElementById("chatFloatBtn");
+
+        const chatPanel =
+            document.getElementById("chatPanel");
+
+        const chatCloseBtn =
+            document.getElementById("chatCloseBtn");
+
+        const chatMessages =
+            document.getElementById("chatMessages");
+
+        const chatInput =
+            document.getElementById("chatInput");
+
+        const sendChatBtn =
+            document.getElementById("sendChatBtn");
+
+        // 打开聊天窗口
+        chatFloatBtn.addEventListener("click", function () {
+            chatPanel.classList.add("show");
+            chatInput.focus();
+        });
+
+        // 关闭聊天窗口
+        chatCloseBtn.addEventListener("click", function () {
+            chatPanel.classList.remove("show");
+        });
+
+        // 按 Esc 关闭聊天窗口
+        document.addEventListener("keydown", function (event) {
+            if (
+                event.key === "Escape" &&
+                chatPanel.classList.contains("show")
+            ) {
+                chatPanel.classList.remove("show");
+            }
+        });
+
+        // 添加聊天消息
+        function addChatMessage(content, type) {
+            const message =
+                document.createElement("div");
+
+            message.className =
+                "chat-message " + type + "-message";
+
+            const avatar =
+                document.createElement("div");
+
+            avatar.className = "message-avatar";
+            avatar.textContent =
+                type === "user" ? "我" : "AI";
+
+            const bubble =
+                document.createElement("div");
+
+            bubble.className = "message-bubble";
+
+            if (type === "ai") {
+                const markdownHtml =
+                    marked.parse(content || "");
+
+                bubble.innerHTML =
+                    DOMPurify.sanitize(markdownHtml);
+            } else {
+                bubble.textContent = content;
+            }
+
+            message.appendChild(avatar);
+            message.appendChild(bubble);
+            chatMessages.appendChild(message);
+
+            chatMessages.scrollTop =
+                chatMessages.scrollHeight;
+        }
+
+        // 显示等待提示
+        function addChatLoading() {
+            removeChatLoading();
+
+            const loading =
+                document.createElement("div");
+
+            loading.className =
+                "chat-message ai-message";
+
+            loading.id = "chatLoading";
+
+            loading.innerHTML = `
+                <div class="message-avatar">AI</div>
+
+                <div class="message-bubble chat-loading">
+                    正在分析你的情况，请稍候……
+                </div>
+            `;
+
+            chatMessages.appendChild(loading);
+
+            chatMessages.scrollTop =
+                chatMessages.scrollHeight;
+        }
+
+        // 删除等待提示
+        function removeChatLoading() {
+            const loading =
+                document.getElementById("chatLoading");
+
+            if (loading) {
+                loading.remove();
+            }
+        }
+
+        // 获取当前旅行攻略
+        function getCurrentTravelPlan() {
+            const emptyBox =
+                resultBox.querySelector(".empty");
+
+            if (emptyBox) {
+                return "";
+            }
+
+            return resultBox.innerText.trim();
+        }
+
+        // 发送聊天消息
+        async function sendChatMessage() {
+            const message =
+                chatInput.value.trim();
+
+            if (!message) {
+                chatInput.focus();
+                return;
+            }
+
+            const destination =
+                destinationInput.value.trim();
+
+            const days =
+                daysInput.value || 1;
+
+            const budget =
+                budgetInput.value.trim();
+
+            const preference =
+                preferenceInput.value.trim();
+
+            const currentPlan =
+                getCurrentTravelPlan();
+
+            // 先显示用户消息
+            addChatMessage(message, "user");
+
+            chatInput.value = "";
+            chatInput.disabled = true;
+            sendChatBtn.disabled = true;
+
+            addChatLoading();
+
+            try {
+                const response = await fetch(
+                    API_BASE_URL + "/api/chat",
+                    {
+                        method: "POST",
+
+                        headers: {
+                            "Content-Type": "application/json"
+                        },
+
+                        body: JSON.stringify({
+                            message: message,
+                            travel_plan: currentPlan,
+                            destination: destination,
+                            days: Number(days),
+                            budget: budget,
+                            preference: preference
+                        })
+                    }
+                );
+
+                const data = await response.json();
+
+                removeChatLoading();
+
+                if (!response.ok) {
+                    throw new Error(
+                        data.detail ||
+                        data.message ||
+                        "聊天接口请求失败"
+                    );
+                }
+
+                if (
+                    data.code === 0 &&
+                    data.data &&
+                    data.data.answer
+                ) {
+                    addChatMessage(
+                        data.data.answer,
+                        "ai"
+                    );
+                } else {
+                    throw new Error(
+                        data.error ||
+                        data.message ||
+                        "AI 没有返回有效内容"
+                    );
+                }
+
+            } catch (error) {
+                removeChatLoading();
+
+                addChatMessage(
+                    "发送失败，请检查 FastAPI 服务和 `/api/chat` 接口。\n\n错误信息：" +
+                    error.message,
+                    "ai"
+                );
+
+                console.error("聊天发送失败：", error);
+
+            } finally {
+                chatInput.disabled = false;
+                sendChatBtn.disabled = false;
+                chatInput.focus();
+            }
+        }
+
+        // 点击发送
+        sendChatBtn.addEventListener(
+            "click",
+            sendChatMessage
+        );
+
+        // Enter 发送，Shift + Enter 换行
+        chatInput.addEventListener(
+            "keydown",
+            function (event) {
+                if (
+                    event.key === "Enter" &&
+                    !event.shiftKey
+                ) {
+                    event.preventDefault();
+                    sendChatMessage();
+                }
+            }
+        );
+
+        // 快捷问题
+        document
+            .querySelectorAll(".chat-suggestions button")
+            .forEach(function (button) {
+                button.addEventListener(
+                    "click",
+                    function () {
+                        chatInput.value =
+                            this.dataset.question;
+
+                        chatInput.focus();
+                    }
+                );
+            });
+    </script>
+</body>
+</html>
