@@ -16,6 +16,56 @@
     <!-- HTML 安全过滤 -->
     <script src="https://cdn.jsdelivr.net/npm/dompurify@3.1.6/dist/purify.min.js"></script>
 
+.history-controls {
+    display: grid;
+    gap: 10px;
+    margin: 14px 0 16px;
+}
+
+.history-filter-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    align-items: center;
+}
+
+.history-filter-select,
+.history-clear-filter-btn {
+    min-height: 38px;
+    border: 1px solid rgba(148, 163, 184, 0.45);
+    border-radius: 8px;
+    background: #ffffff;
+    color: #1f2937;
+    font-size: 14px;
+}
+
+.history-filter-select {
+    min-width: 150px;
+    padding: 0 34px 0 12px;
+}
+
+.history-clear-filter-btn {
+    padding: 0 14px;
+    cursor: pointer;
+}
+
+.history-clear-filter-btn:hover {
+    border-color: rgba(59, 130, 246, 0.65);
+    color: #1d4ed8;
+}
+
+@media (max-width: 640px) {
+    .history-filter-row {
+        display: grid;
+        grid-template-columns: 1fr;
+    }
+
+    .history-filter-select,
+    .history-clear-filter-btn {
+        width: 100%;
+    }
+}
+
     <style>
         :root {
             --primary: #0b8f87;
@@ -957,6 +1007,354 @@
                 bottom: 15px;
             }
         }
+        /* =========================
+           历史攻略
+        ========================= */
+
+        .history-section {
+            margin-top: 28px;
+            padding: 26px;
+        }
+
+        .history-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 16px;
+            margin-bottom: 20px;
+        }
+
+        .history-title-wrap {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .history-title-wrap h2 {
+            margin: 0;
+            color: #096f75;
+            font-size: 23px;
+        }
+
+        .history-subtitle {
+            margin: 5px 0 0;
+            color: var(--muted);
+            font-size: 13px;
+        }
+
+        .history-refresh-btn {
+            flex-shrink: 0;
+            padding: 10px 16px;
+            border: 1px solid rgba(11, 143, 135, 0.25);
+            border-radius: 12px;
+            color: var(--primary-dark);
+            background: rgba(255, 255, 255, 0.85);
+            font: inherit;
+            font-weight: 700;
+            cursor: pointer;
+            transition: 0.2s ease;
+        }
+
+        .history-refresh-btn:hover {
+            color: white;
+            background: var(--primary);
+            transform: translateY(-1px);
+        }
+
+        .history-refresh-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .history-list {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 15px;
+        }
+
+        .history-item {
+            position: relative;
+            min-width: 0;
+            padding: 18px;
+            border: 1px solid rgba(11, 143, 135, 0.14);
+            border-radius: 18px;
+            background: rgba(248, 255, 254, 0.88);
+            cursor: pointer;
+            transition: 0.22s ease;
+        }
+
+        .history-item:hover {
+            border-color: rgba(11, 143, 135, 0.38);
+            box-shadow: 0 10px 25px rgba(31, 94, 100, 0.12);
+            transform: translateY(-3px);
+        }
+
+        .history-item-top {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: 10px;
+        }
+
+        .history-destination {
+            overflow: hidden;
+            margin: 0;
+            color: #075f68;
+            font-size: 18px;
+            font-weight: 800;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .history-id {
+            flex-shrink: 0;
+            padding: 4px 8px;
+            border-radius: 20px;
+            color: #8a641f;
+            background: rgba(255, 180, 71, 0.18);
+            font-size: 12px;
+        }
+
+        .history-meta {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 7px;
+            margin: 14px 0 12px;
+        }
+
+        .history-meta span {
+            padding: 5px 9px;
+            border-radius: 9px;
+            color: #46666c;
+            background: rgba(11, 143, 135, 0.08);
+            font-size: 12px;
+        }
+
+        .history-time {
+            color: var(--muted);
+            font-size: 12px;
+        }
+
+        .history-status {
+            grid-column: 1 / -1;
+            padding: 32px 15px;
+            border: 1px dashed rgba(11, 143, 135, 0.25);
+            border-radius: 16px;
+            color: var(--muted);
+            text-align: center;
+            background: rgba(255, 255, 255, 0.55);
+        }
+
+        /* 历史详情弹窗 */
+
+        .history-modal {
+            position: fixed;
+            z-index: 1000;
+            inset: 0;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            padding: 24px;
+            background: rgba(15, 43, 48, 0.58);
+            backdrop-filter: blur(6px);
+        }
+
+        .history-modal.is-open {
+            display: flex;
+        }
+
+        .history-dialog {
+            display: flex;
+            flex-direction: column;
+            width: min(920px, 100%);
+            max-height: 88vh;
+            overflow: hidden;
+            border: 1px solid rgba(255, 255, 255, 0.8);
+            border-radius: 24px;
+            background: #fbffff;
+            box-shadow: 0 25px 70px rgba(0, 42, 47, 0.28);
+        }
+
+        .history-dialog-header {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: 16px;
+            padding: 20px 22px;
+            border-bottom: 1px solid rgba(11, 143, 135, 0.12);
+        }
+
+        .history-dialog-header h3 {
+            margin: 0 0 5px;
+            color: #075f68;
+            font-size: 22px;
+        }
+
+        .history-dialog-header p {
+            margin: 0;
+            color: var(--muted);
+            font-size: 13px;
+        }
+
+        .history-close-btn {
+            display: grid;
+            place-items: center;
+            flex-shrink: 0;
+            width: 38px;
+            height: 38px;
+            border: 0;
+            border-radius: 50%;
+            color: #46666c;
+            background: rgba(11, 143, 135, 0.09);
+            font-size: 22px;
+            cursor: pointer;
+        }
+
+        .history-dialog-actions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            padding: 14px 22px;
+            border-bottom: 1px solid rgba(11, 143, 135, 0.1);
+        }
+
+        .history-action-btn {
+            padding: 9px 14px;
+            border: 0;
+            border-radius: 10px;
+            color: white;
+            background: var(--primary);
+            font: inherit;
+            font-size: 14px;
+            font-weight: 700;
+            cursor: pointer;
+        }
+
+        .history-action-btn.secondary {
+            color: var(--primary-dark);
+            background: rgba(11, 143, 135, 0.11);
+        }
+
+        .history-action-btn.danger {
+            color: #b42318;
+            background: rgba(217, 45, 32, 0.1);
+        }
+
+        .history-action-btn:disabled {
+            opacity: 0.55;
+            cursor: not-allowed;
+        }
+
+        .history-detail-content {
+            overflow-y: auto;
+            padding: 22px 26px 30px;
+            line-height: 1.8;
+        }
+
+        .history-detail-content img {
+            max-width: 100%;
+        }
+
+        .history-detail-content pre {
+            overflow-x: auto;
+            padding: 14px;
+            border-radius: 12px;
+            background: #eef7f6;
+        }
+
+        body.history-modal-open {
+            overflow: hidden;
+        }
+
+        @media (max-width: 900px) {
+            .history-list {
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+            }
+        }
+
+        @media (max-width: 600px) {
+            .history-section {
+                padding: 20px 16px;
+            }
+
+            .history-header {
+                align-items: flex-start;
+            }
+
+            .history-list {
+                grid-template-columns: 1fr;
+            }
+
+            .history-modal {
+                padding: 10px;
+            }
+
+            .history-dialog {
+                max-height: 94vh;
+                border-radius: 18px;
+            }
+
+            .history-dialog-actions {
+                padding: 12px 16px;
+            }
+
+            .history-detail-content {
+                padding: 18px 17px 24px;
+            }
+        }
+
+    .history-search {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin: 16px 0;
+}
+
+.history-search-input {
+    width: 100%;
+    min-width: 0;
+    height: 42px;
+    padding: 0 14px;
+    border: 1px solid #d8dde6;
+    border-radius: 6px;
+    background: #ffffff;
+    color: #1f2937;
+    font: inherit;
+    outline: none;
+}
+
+.history-search-input::placeholder {
+    color: #8a94a3;
+}
+
+.history-search-input:focus {
+    border-color: #2563eb;
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.14);
+}
+
+.history-search-count {
+    flex: 0 0 auto;
+    min-width: 64px;
+    color: #667085;
+    font-size: 14px;
+    text-align: right;
+    white-space: nowrap;
+}
+
+@media (max-width: 600px) {
+    .history-search {
+        align-items: stretch;
+        flex-direction: column;
+        gap: 6px;
+    }
+
+    .history-search-count {
+        min-width: 0;
+        text-align: left;
+    }
+}
+
     </style>
 </head>
 
@@ -1395,6 +1793,14 @@
                 ) {
                     statusBox.textContent =
                         "攻略生成成功，已经保存到 MySQL 数据库。";
+                    // 新攻略生成成功后，自动刷新历史记录
+const historyRefreshButton = document.getElementById("historyRefreshBtn");
+
+if (historyRefreshButton) {
+    historyRefreshButton.click();
+}
+
+
 
                     const html = marked.parse(
                         data.data.travel_plan
@@ -1701,5 +2107,1360 @@
                 );
             });
     </script>
+    <!-- 历史攻略 -->
+    <section
+        id="historySection"
+        class="card history-section"
+    >
+        <div class="history-header">
+            <div class="history-title-wrap">
+                <div class="title-icon">🕘</div>
+
+                <div>
+                    <h2>历史攻略</h2>
+                    <p class="history-subtitle">
+                        查看、复制、下载或删除以前生成的旅行攻略
+                    </p>
+                </div>
+            </div>
+
+            <button
+                id="historyRefreshBtn"
+                class="history-refresh-btn"
+                type="button"
+            >
+                刷新记录
+            </button>
+        </div>
+<div class="history-controls">
+    <div class="history-search">
+        <input
+            id="historySearchInput"
+            class="history-search-input"
+            type="search"
+            placeholder="搜索目的地、标题或攻略内容"
+            autocomplete="off"
+            aria-label="搜索历史攻略"
+        >
+
+        <span
+            id="historySearchCount"
+            class="history-search-count"
+        ></span>
+    </div>
+
+    <div class="history-filter-row">
+        <select
+            id="historyDestinationFilter"
+            class="history-filter-select"
+            aria-label="按目的地筛选历史攻略"
+        >
+            <option value="">全部目的地</option>
+        </select>
+
+        <select
+            id="historySortSelect"
+            class="history-filter-select"
+            aria-label="排序历史攻略"
+        >
+            <option value="newest">最新优先</option>
+            <option value="oldest">最早优先</option>
+            <option value="destination">目的地 A-Z</option>
+            <option value="daysAsc">天数少到多</option>
+            <option value="daysDesc">天数多到少</option>
+        </select>
+
+        <button
+            id="historyClearFiltersBtn"
+            class="history-clear-filter-btn"
+            type="button"
+        >
+            清除条件
+        </button>
+    </div>
+</div>
+
+
+
+        <div
+            id="historyList"
+            class="history-list"
+        >
+            <div class="history-status">
+                正在准备历史记录……
+            </div>
+        </div>
+    </section>
+
+    <!-- 历史攻略详情弹窗 -->
+    <div
+        id="historyModal"
+        class="history-modal"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="historyModalTitle"
+    >
+        <div class="history-dialog">
+            <div class="history-dialog-header">
+                <div>
+                    <h3 id="historyModalTitle">
+                        历史攻略详情
+                    </h3>
+
+                    <p id="historyModalMeta">
+                        正在读取……
+                    </p>
+                </div>
+
+                <button
+                    id="historyCloseBtn"
+                    class="history-close-btn"
+                    type="button"
+                    aria-label="关闭历史攻略详情"
+                    title="关闭"
+                >
+                    ×
+                </button>
+            </div>
+
+            <div class="history-dialog-actions">
+                <button
+                    id="historyCopyBtn"
+                    class="history-action-btn"
+                    type="button"
+                    disabled
+                >
+                    复制 Markdown
+                </button>
+
+                <button
+                    id="historyDownloadBtn"
+                    class="history-action-btn secondary"
+                    type="button"
+                    disabled
+                >
+                    下载 .md
+                </button>
+
+                <button
+                    id="historyDeleteBtn"
+                    class="history-action-btn danger"
+                    type="button"
+                    disabled
+                >
+                    删除记录
+                </button>
+            </div>
+
+            <article
+                id="historyDetailContent"
+                class="history-detail-content"
+            >
+                请选择一条历史攻略。
+            </article>
+        </div>
+    </div>
+<script>
+    /* ==========================================
+       历史攻略：列表加载与详情查看
+    ========================================== */
+    document.addEventListener("DOMContentLoaded", function () {
+        const historyList = document.getElementById("historyList");
+        const historyRefreshBtn = document.getElementById("historyRefreshBtn");
+        const historySearchInput = document.getElementById("historySearchInput");
+        const historySearchCount = document.getElementById("historySearchCount");
+        const historyDestinationFilter = document.getElementById("historyDestinationFilter");
+        const historySortSelect = document.getElementById("historySortSelect");
+        const historyClearFiltersBtn = document.getElementById("historyClearFiltersBtn");
+
+        let historyRecordsCache = [];
+
+
+        const historyModal = document.getElementById("historyModal");
+        const historyCloseBtn = document.getElementById("historyCloseBtn");
+        const historyModalTitle = document.getElementById("historyModalTitle");
+        const historyModalMeta = document.getElementById("historyModalMeta");
+        const historyDetailContent = document.getElementById("historyDetailContent");
+
+        const historyCopyBtn = document.getElementById("historyCopyBtn");
+        const historyDownloadBtn = document.getElementById("historyDownloadBtn");
+        const historyDeleteBtn = document.getElementById("historyDeleteBtn");
+
+        /*
+         * 保存当前打开的历史记录。
+         * 下一部分的复制、下载、删除功能会继续使用这两个变量。
+         */
+        window.currentHistoryRecord = null;
+        window.currentHistoryMarkdown = "";
+
+        if (
+            !historyList ||
+            !historyRefreshBtn ||
+            !historySearchInput ||
+            !historySearchCount ||
+            !historyModal ||
+            !historyCloseBtn ||
+            !historyDetailContent
+           ) {
+
+            console.error("历史攻略组件初始化失败：没有找到必要的 HTML 元素。");
+            return;
+        }
+
+        /**
+         * 将特殊字符转换为安全的 HTML 实体，
+         * 防止后端内容被浏览器当成 HTML 直接执行。
+         */
+        function escapeHtml(value) {
+            return String(value ?? "")
+                .replace(/&/g, "&amp;")
+                .replace(/</g, "&lt;")
+                .replace(/>/g, "&gt;")
+                .replace(/"/g, "&quot;")
+                .replace(/'/g, "&#039;");
+        }
+
+        /**
+         * 从接口响应中提取 data。
+         * 兼容：
+         * { code: 0, data: ... }
+         * 以及接口直接返回数组或对象的情况。
+         */
+        function extractResponseData(result) {
+            if (
+                result &&
+                typeof result === "object" &&
+                Object.prototype.hasOwnProperty.call(result, "code") &&
+                Number(result.code) !== 0
+            ) {
+                throw new Error(
+                    result.message ||
+                    result.msg ||
+                    "接口返回了错误状态"
+                );
+            }
+
+            if (
+                result &&
+                typeof result === "object" &&
+                Object.prototype.hasOwnProperty.call(result, "data")
+            ) {
+                return result.data;
+            }
+
+            return result;
+        }
+
+        /**
+         * 格式化创建时间。
+         */
+        function formatHistoryTime(value) {
+            if (!value) {
+                return "时间未知";
+            }
+
+            const originalValue = String(value);
+
+            /*
+             * 后端返回 2026-07-23T15:18:13 这类不带时区的时间，
+             * 直接转换成更适合页面显示的格式。
+             */
+            const simpleMatch = originalValue.match(
+                /^(\d{4})-(\d{2})-(\d{2})[T\s](\d{2}):(\d{2})(?::(\d{2}))?/
+            );
+
+            if (simpleMatch) {
+                return (
+                    simpleMatch[1] +
+                    "-" +
+                    simpleMatch[2] +
+                    "-" +
+                    simpleMatch[3] +
+                    " " +
+                    simpleMatch[4] +
+                    ":" +
+                    simpleMatch[5]
+                );
+            }
+
+            const date = new Date(originalValue);
+
+            if (!Number.isNaN(date.getTime())) {
+                return date.toLocaleString("zh-CN", {
+                    year: "numeric",
+                    month: "2-digit",
+                    day: "2-digit",
+                    hour: "2-digit",
+                    minute: "2-digit",
+                    hour12: false
+                });
+            }
+
+            return originalValue;
+        }
+
+        /**
+         * 获取攻略正文。
+         * 优先读取 travel_plan，同时兼容少数可能的字段名称。
+         */
+        function getTravelPlan(record) {
+            if (!record || typeof record !== "object") {
+                return "";
+            }
+
+            return (
+                record.travel_plan ||
+                record.plan ||
+                record.content ||
+                record.markdown ||
+                record.result ||
+                ""
+            );
+        }
+
+        /**
+         * 简单清理 marked 生成的 HTML。
+         * 如果页面已经引入 DOMPurify，会优先使用 DOMPurify。
+         */
+        function sanitizeRenderedHtml(html) {
+            if (
+                window.DOMPurify &&
+                typeof window.DOMPurify.sanitize === "function"
+            ) {
+                return window.DOMPurify.sanitize(html);
+            }
+
+            const template = document.createElement("template");
+            template.innerHTML = html;
+
+            template.content
+                .querySelectorAll(
+                    "script, iframe, object, embed, form, input, button"
+                )
+                .forEach(function (element) {
+                    element.remove();
+                });
+
+            template.content.querySelectorAll("*").forEach(function (element) {
+                Array.from(element.attributes).forEach(function (attribute) {
+                    const name = attribute.name.toLowerCase();
+                    const value = attribute.value.trim().toLowerCase();
+
+                    if (name.startsWith("on")) {
+                        element.removeAttribute(attribute.name);
+                    }
+
+                    if (
+                        (name === "href" || name === "src") &&
+                        value.startsWith("javascript:")
+                    ) {
+                        element.removeAttribute(attribute.name);
+                    }
+                });
+            });
+
+            return template.innerHTML;
+        }
+
+        /**
+         * 显示 Markdown 攻略。
+         * 如果原页面已经加载 marked.js，则渲染为排版后的 HTML；
+         * 否则使用纯文本显示，不会影响读取内容。
+         */
+        function renderHistoryMarkdown(markdown) {
+            const text = String(markdown || "").trim();
+
+            if (!text) {
+                historyDetailContent.innerHTML =
+                    '<div class="history-detail-message">' +
+                    "这条记录暂时没有找到攻略正文。" +
+                    "</div>";
+                return;
+            }
+
+            try {
+                if (window.marked) {
+                    let renderedHtml = "";
+
+                    if (typeof window.marked.parse === "function") {
+                        renderedHtml = window.marked.parse(text);
+                    } else if (typeof window.marked === "function") {
+                        renderedHtml = window.marked(text);
+                    }
+
+                    if (renderedHtml) {
+                        historyDetailContent.innerHTML =
+                            sanitizeRenderedHtml(renderedHtml);
+                        return;
+                    }
+                }
+            } catch (error) {
+                console.warn("Markdown 渲染失败，改用纯文本显示：", error);
+            }
+
+            /*
+             * 没有 marked.js 时采用安全的纯文本方式。
+             */
+            historyDetailContent.innerHTML =
+                '<pre style="' +
+                "margin:0;" +
+                "white-space:pre-wrap;" +
+                "word-break:break-word;" +
+                "font:inherit;" +
+                "line-height:1.8;" +
+                '">' +
+                escapeHtml(text) +
+                "</pre>";
+        }
+
+        /**
+         * 设置列表区域提示。
+         */
+        function setHistoryStatus(message) {
+            historyList.innerHTML =
+                '<div class="history-status">' +
+                escapeHtml(message) +
+                "</div>";
+        }
+
+        /**
+         * 创建一张历史攻略卡片。
+         */
+        function createHistoryCard(record) {
+            const item = document.createElement("article");
+            item.className = "history-item";
+            item.tabIndex = 0;
+            item.setAttribute("role", "button");
+            item.setAttribute(
+                "aria-label",
+                "查看 " +
+                String(record.destination || "未命名目的地") +
+                " 的历史攻略"
+            );
+
+            const destination =
+                record.destination || "未命名目的地";
+
+            const days =
+                record.days !== undefined &&
+                record.days !== null &&
+                record.days !== ""
+                    ? record.days + " 天"
+                    : "天数未填写";
+
+            const budget =
+                record.budget !== undefined &&
+                record.budget !== null &&
+                record.budget !== ""
+                    ? "预算 " + record.budget
+                    : "预算未填写";
+
+            const preference =
+                record.preference || "偏好未填写";
+
+            item.innerHTML =
+                '<div class="history-item-top">' +
+                    '<h3 class="history-destination" title="' +
+                        escapeHtml(destination) +
+                    '">' +
+                        escapeHtml(destination) +
+                    "</h3>" +
+                    '<span class="history-id">#' +
+                        escapeHtml(record.id ?? "-") +
+                    "</span>" +
+                "</div>" +
+
+                '<div class="history-meta">' +
+                    "<span>" + escapeHtml(days) + "</span>" +
+                    "<span>" + escapeHtml(budget) + "</span>" +
+                    "<span>" + escapeHtml(preference) + "</span>" +
+                "</div>" +
+
+                '<div class="history-time">' +
+                    "创建于 " +
+                    escapeHtml(formatHistoryTime(record.created_at)) +
+                "</div>";
+
+            item.addEventListener("click", function () {
+                openHistoryDetail(record);
+            });
+
+            item.addEventListener("keydown", function (event) {
+                if (event.key === "Enter" || event.key === " ") {
+                    event.preventDefault();
+                    openHistoryDetail(record);
+                }
+            });
+
+            return item;
+        }
+
+        /**
+         * 渲染历史列表。
+         */
+/**
+ * 渲染历史攻略列表。
+ */
+function renderHistoryList(records) {
+    historyList.innerHTML = "";
+
+    const safeRecords = Array.isArray(records) ? records : [];
+    const totalCount = historyRecordsCache.length;
+    const keyword = historySearchInput.value.trim();
+
+    if (keyword) {
+        historySearchCount.textContent =
+            "显示 " + safeRecords.length + " / 共 " + totalCount + " 条";
+    } else {
+        historySearchCount.textContent =
+            "共 " + safeRecords.length + " 条";
+    }
+
+    if (safeRecords.length === 0) {
+        if (keyword && totalCount > 0) {
+            setHistoryStatus(
+                '没有找到与“' + keyword + '”相关的历史攻略。'
+            );
+        } else {
+            setHistoryStatus(
+                "暂无历史攻略。生成一份新攻略后，它会显示在这里。"
+            );
+        }
+
+        return;
+    }
+
+    safeRecords.forEach(function (record) {
+        historyList.appendChild(createHistoryCard(record));
+    });
+}
+
+/**
+ * 根据搜索框内容即时筛选历史攻略。
+ */
+function getHistoryRecordTime(record) {
+    const time = Date.parse(record.created_at || "");
+
+    if (!Number.isNaN(time)) {
+        return time;
+    }
+
+    const idNumber = Number(record.id);
+
+    return Number.isNaN(idNumber) ? 0 : idNumber;
+}
+
+function getHistoryRecordDays(record) {
+    const daysNumber = Number(record.days);
+
+    return Number.isNaN(daysNumber)
+        ? Number.MAX_SAFE_INTEGER
+        : daysNumber;
+}
+
+function syncHistoryDestinationOptions() {
+    if (!historyDestinationFilter) {
+        return;
+    }
+
+    const currentValue = historyDestinationFilter.value;
+
+    const destinations = Array.from(
+        new Set(
+            historyRecordsCache
+                .map(function (record) {
+                    return String(record.destination || "").trim();
+                })
+                .filter(Boolean)
+        )
+    ).sort(function (a, b) {
+        return a.localeCompare(b, "zh-CN");
+    });
+
+    historyDestinationFilter.innerHTML =
+        '<option value="">全部目的地</option>';
+
+    destinations.forEach(function (destination) {
+        const option = document.createElement("option");
+
+        option.value = destination;
+        option.textContent = destination;
+
+        historyDestinationFilter.appendChild(option);
+    });
+
+    if (destinations.includes(currentValue)) {
+        historyDestinationFilter.value = currentValue;
+    }
+}
+
+function applyHistorySearch() {
+    const keyword = historySearchInput.value
+        .trim()
+        .toLocaleLowerCase();
+
+    const selectedDestination = historyDestinationFilter
+        ? historyDestinationFilter.value
+        : "";
+
+    const sortValue = historySortSelect
+        ? historySortSelect.value
+        : "newest";
+
+    let filteredRecords = historyRecordsCache.filter(function (record) {
+        const recordDestination = String(
+            record.destination || ""
+        ).trim();
+
+        if (
+            selectedDestination &&
+            recordDestination !== selectedDestination
+        ) {
+            return false;
+        }
+
+        const searchableText = JSON.stringify(record)
+            .toLocaleLowerCase();
+
+        return searchableText.includes(keyword);
+    });
+
+    filteredRecords = filteredRecords.slice().sort(function (a, b) {
+        if (sortValue === "oldest") {
+            return (
+                getHistoryRecordTime(a) -
+                getHistoryRecordTime(b)
+            );
+        }
+
+        if (sortValue === "destination") {
+            return String(a.destination || "").localeCompare(
+                String(b.destination || ""),
+                "zh-CN"
+            );
+        }
+
+        if (sortValue === "daysAsc") {
+            return (
+                getHistoryRecordDays(a) -
+                getHistoryRecordDays(b)
+            );
+        }
+
+        if (sortValue === "daysDesc") {
+            return (
+                getHistoryRecordDays(b) -
+                getHistoryRecordDays(a)
+            );
+        }
+
+        return (
+            getHistoryRecordTime(b) -
+            getHistoryRecordTime(a)
+        );
+    });
+
+    renderHistoryList(filteredRecords);
+}
+ /**
+ * 请求历史列表。
+ */
+async function loadHistoryRecords() {
+
+            historyRefreshBtn.disabled = true;
+            historyRefreshBtn.textContent = "加载中……";
+            setHistoryStatus("正在加载历史记录……");
+
+            try {
+                const response = await fetch(
+                    "/api/travel-records?limit=20",
+                    {
+                        method: "GET",
+                        headers: {
+                            Accept: "application/json"
+                        },
+                        cache: "no-store"
+                    }
+                );
+
+                if (!response.ok) {
+                    throw new Error(
+                        "HTTP " +
+                        response.status +
+                        " " +
+                        response.statusText
+                    );
+                }
+
+                const result = await response.json();
+                const records = extractResponseData(result);
+
+                if (!Array.isArray(records)) {
+                throw new Error("历史列表返回格式不正确");
+                }
+
+                /*
+                * 保存完整历史数据，然后根据当前搜索词显示列表。
+                */
+                historyRecordsCache = records;
+                syncHistoryDestinationOptions();
+                applyHistorySearch();
+
+
+            } catch (error) {
+                console.error("历史记录加载失败：", error);
+
+                setHistoryStatus(
+                    "历史记录加载失败：" +
+                    (error.message || "请检查后端接口")
+                );
+            } finally {
+                historyRefreshBtn.disabled = false;
+                historyRefreshBtn.textContent = "刷新记录";
+            }
+        }
+
+        /**
+         * 打开详情弹窗。
+         */
+        function showHistoryModal() {
+            historyModal.classList.add("is-open");
+            document.body.style.overflow = "hidden";
+        }
+
+        /**
+         * 关闭详情弹窗。
+         */
+        function closeHistoryModal() {
+            historyModal.classList.remove("is-open");
+            document.body.style.overflow = "";
+        }
+
+        /**
+         * 加载指定记录详情。
+         */
+        async function openHistoryDetail(listRecord) {
+            const recordId = listRecord && listRecord.id;
+
+            if (
+                recordId === undefined ||
+                recordId === null ||
+                recordId === ""
+            ) {
+                alert("这条历史记录缺少 ID，无法读取详情。");
+                return;
+            }
+
+            window.currentHistoryRecord = null;
+            window.currentHistoryMarkdown = "";
+
+            historyModalTitle.textContent =
+                listRecord.destination || "历史攻略详情";
+
+            historyModalMeta.textContent =
+                "记录 #" + recordId + " · 正在读取详情……";
+
+            historyDetailContent.innerHTML =
+                '<div class="history-detail-message">' +
+                "正在加载攻略详情……" +
+                "</div>";
+
+            /*
+             * 下一部分成功获取详情后会启用这些按钮。
+             */
+            historyCopyBtn.disabled = false;
+            historyDownloadBtn.disabled = false;
+            historyDeleteBtn.disabled = false;
+
+
+            showHistoryModal();
+
+            try {
+                const response = await fetch(
+                    "/api/travel-records/" +
+                    encodeURIComponent(recordId),
+                    {
+                        method: "GET",
+                        headers: {
+                            Accept: "application/json"
+                        },
+                        cache: "no-store"
+                    }
+                );
+
+                if (!response.ok) {
+                    throw new Error(
+                        "HTTP " +
+                        response.status +
+                        " " +
+                        response.statusText
+                    );
+                }
+
+                const result = await response.json();
+                const detailData = extractResponseData(result);
+
+                /*
+                 * 兼容详情接口把记录再包在 record 字段中的情况。
+                 */
+                const detailRecord =
+                    detailData &&
+                    typeof detailData === "object" &&
+                    detailData.record &&
+                    typeof detailData.record === "object"
+                        ? detailData.record
+                        : detailData;
+
+                if (
+                    !detailRecord ||
+                    typeof detailRecord !== "object" ||
+                    Array.isArray(detailRecord)
+                ) {
+                    throw new Error("详情接口返回格式不正确");
+                }
+
+                /*
+                 * 列表信息与详情信息合并。
+                 * 即使详情接口缺少 destination 等字段也能正常显示。
+                 */
+                const completeRecord = Object.assign(
+                    {},
+                    listRecord,
+                    detailRecord
+                );
+
+                const markdown = getTravelPlan(completeRecord);
+
+                window.currentHistoryRecord = completeRecord;
+                window.currentHistoryMarkdown = String(markdown || "");
+
+                historyModalTitle.textContent =
+                    completeRecord.destination || "历史攻略详情";
+
+                historyModalMeta.textContent =
+                    "记录 #" +
+                    completeRecord.id +
+                    " · " +
+                    formatHistoryTime(completeRecord.created_at);
+
+                renderHistoryMarkdown(markdown);
+            } catch (error) {
+                console.error("历史详情加载失败：", error);
+
+                historyModalMeta.textContent =
+                    "记录 #" + recordId + " · 读取失败";
+
+                historyDetailContent.innerHTML =
+                    '<div class="history-detail-message">' +
+                    "攻略详情加载失败：" +
+                    escapeHtml(error.message || "请检查详情接口") +
+                    "</div>";
+            }
+        }
+
+        /*
+         * 暴露刷新函数。
+         * 后续可以在生成新攻略成功后调用：
+         * window.loadHistoryRecords();
+         */
+        window.loadHistoryRecords = loadHistoryRecords;
+
+        historyRefreshBtn.addEventListener(
+            "click",
+            loadHistoryRecords
+        );
+
+        historyCloseBtn.addEventListener(
+            "click",
+            closeHistoryModal
+        );
+
+        /*
+         * 点击灰色遮罩关闭弹窗，
+         * 点击弹窗内容本身不会关闭。
+         */
+        historyModal.addEventListener("click", function (event) {
+            if (event.target === historyModal) {
+                closeHistoryModal();
+            }
+        });
+
+        document.addEventListener("keydown", function (event) {
+            if (
+                event.key === "Escape" &&
+                historyModal.classList.contains("is-open")
+            ) {
+                closeHistoryModal();
+            }
+        });
+/*
+ * 输入搜索词时立即筛选，不需要请求后端。
+ */
+if (historySearchInput) {
+    historySearchInput.addEventListener("input", function () {
+        applyHistorySearch();
+    });
+}
+
+if (historyDestinationFilter) {
+    historyDestinationFilter.addEventListener("change", function () {
+        applyHistorySearch();
+    });
+}
+
+if (historySortSelect) {
+    historySortSelect.addEventListener("change", function () {
+        applyHistorySearch();
+    });
+}
+
+if (historyClearFiltersBtn) {
+    historyClearFiltersBtn.addEventListener("click", function () {
+        if (historySearchInput) {
+            historySearchInput.value = "";
+        }
+
+        if (historyDestinationFilter) {
+            historyDestinationFilter.value = "";
+        }
+
+        if (historySortSelect) {
+            historySortSelect.value = "newest";
+        }
+
+        applyHistorySearch();
+    });
+}
+
+
+        /*
+         * 页面打开后自动读取历史攻略。
+         */
+        loadHistoryRecords();
+    });
+</script>
+<script>
+    /* ==========================================
+       历史攻略：复制、下载与删除
+    ========================================== */
+    document.addEventListener("DOMContentLoaded", function () {
+        const historyCopyBtn = document.getElementById("historyCopyBtn");
+        const historyDownloadBtn = document.getElementById("historyDownloadBtn");
+        const historyDeleteBtn = document.getElementById("historyDeleteBtn");
+
+        const historyRefreshBtn = document.getElementById("historyRefreshBtn");
+        const historyCloseBtn = document.getElementById("historyCloseBtn");
+
+        if (
+            !historyCopyBtn ||
+            !historyDownloadBtn ||
+            !historyDeleteBtn
+        ) {
+            console.error("历史攻略操作按钮初始化失败。");
+            return;
+        }
+
+        /*
+         * 第 2 部分暂时禁用了这三个按钮。
+         * 现在功能已经接入，可以解除禁用状态。
+         */
+        historyCopyBtn.disabled = false;
+        historyDownloadBtn.disabled = false;
+        historyDeleteBtn.disabled = false;
+
+        /**
+         * 获取当前攻略正文。
+         */
+        function getCurrentMarkdown() {
+            return String(window.currentHistoryMarkdown || "").trim();
+        }
+
+        /**
+         * 获取当前历史记录。
+         */
+        function getCurrentRecord() {
+            const record = window.currentHistoryRecord;
+
+            if (!record || typeof record !== "object") {
+                return null;
+            }
+
+            return record;
+        }
+
+        /**
+         * 临时修改按钮文字，随后自动恢复。
+         */
+        function showTemporaryButtonText(button, text, duration) {
+            if (!button) {
+                return;
+            }
+
+            const originalText = button.dataset.originalText || button.textContent;
+
+            button.dataset.originalText = originalText;
+            button.textContent = text;
+
+            window.setTimeout(function () {
+                button.textContent = originalText;
+            }, duration || 1500);
+        }
+
+        /**
+         * 剪贴板兼容方案。
+         *
+         * localhost 或 HTTPS 环境优先使用 Clipboard API，
+         * 如果浏览器不支持，则使用隐藏 textarea 复制。
+         */
+        async function copyTextToClipboard(text) {
+            if (
+                navigator.clipboard &&
+                typeof navigator.clipboard.writeText === "function" &&
+                window.isSecureContext
+            ) {
+                await navigator.clipboard.writeText(text);
+                return;
+            }
+
+            const textarea = document.createElement("textarea");
+
+            textarea.value = text;
+            textarea.setAttribute("readonly", "");
+            textarea.style.position = "fixed";
+            textarea.style.left = "-9999px";
+            textarea.style.top = "0";
+            textarea.style.opacity = "0";
+
+            document.body.appendChild(textarea);
+
+            textarea.focus();
+            textarea.select();
+            textarea.setSelectionRange(0, textarea.value.length);
+
+            const successful = document.execCommand("copy");
+
+            textarea.remove();
+
+            if (!successful) {
+                throw new Error("浏览器未能完成复制");
+            }
+        }
+
+        /**
+         * 清理下载文件名中的非法字符。
+         */
+        function sanitizeFileName(value) {
+            const fileName = String(value || "旅行攻略")
+                .replace(/[\\/:*?"<>|]/g, "_")
+                .replace(/\s+/g, " ")
+                .trim();
+
+            return fileName || "旅行攻略";
+        }
+
+        /**
+         * 将日期转换为适合文件名的形式。
+         */
+        function createDateForFileName(value) {
+            if (!value) {
+                return "";
+            }
+
+            const text = String(value);
+            const match = text.match(
+                /^(\d{4})-(\d{2})-(\d{2})[T\s]?(\d{2})?:?(\d{2})?/
+            );
+
+            if (!match) {
+                return "";
+            }
+
+            let result =
+                match[1] +
+                match[2] +
+                match[3];
+
+            if (match[4] && match[5]) {
+                result += "-" + match[4] + match[5];
+            }
+
+            return result;
+        }
+
+        /**
+         * 解析接口响应。
+         * DELETE 接口可能返回 JSON，也可能返回空响应。
+         */
+        async function parseApiResponse(response) {
+            const responseText = await response.text();
+            let result = null;
+
+            if (responseText) {
+                try {
+                    result = JSON.parse(responseText);
+                } catch (error) {
+                    /*
+                     * 如果后端返回纯文本，则保留原始内容。
+                     */
+                    result = {
+                        message: responseText
+                    };
+                }
+            }
+
+            if (!response.ok) {
+                const message =
+                    (result && (result.message || result.msg || result.detail)) ||
+                    "请求失败，HTTP 状态码：" + response.status;
+
+                throw new Error(message);
+            }
+
+            if (
+                result &&
+                typeof result === "object" &&
+                Object.prototype.hasOwnProperty.call(result, "code") &&
+                Number(result.code) !== 0
+            ) {
+                throw new Error(
+                    result.message ||
+                    result.msg ||
+                    result.detail ||
+                    "接口返回了错误状态"
+                );
+            }
+
+            return result;
+        }
+
+        /**
+         * 刷新历史记录。
+         *
+         * 优先使用第 2 部分暴露的加载函数；
+         * 如果该函数不在全局作用域，则模拟点击“刷新记录”按钮。
+         */
+        function refreshHistoryRecords() {
+            if (typeof window.loadHistoryRecords === "function") {
+                window.loadHistoryRecords();
+                return;
+            }
+
+            if (historyRefreshBtn) {
+                historyRefreshBtn.click();
+            }
+        }
+
+        /**
+         * 关闭详情弹窗。
+         */
+        function closeHistoryDialog() {
+            if (historyCloseBtn) {
+                historyCloseBtn.click();
+                return;
+            }
+
+            const historyModal = document.getElementById("historyModal");
+
+            if (historyModal) {
+                historyModal.classList.remove("is-open");
+                historyModal.setAttribute("aria-hidden", "true");
+            }
+
+            document.body.classList.remove("history-modal-open");
+        }
+
+        /* ==========================================
+           复制 Markdown
+        ========================================== */
+
+        historyCopyBtn.addEventListener("click", async function () {
+            const markdown = getCurrentMarkdown();
+
+            if (!markdown) {
+                alert("当前记录没有可复制的攻略正文。");
+                return;
+            }
+
+            historyCopyBtn.disabled = true;
+
+            try {
+                await copyTextToClipboard(markdown);
+                showTemporaryButtonText(
+                    historyCopyBtn,
+                    "已复制 ✓",
+                    1600
+                );
+            } catch (error) {
+                console.error("复制攻略失败：", error);
+
+                alert(
+                    "复制失败，请手动选择攻略内容进行复制。\n\n" +
+                    (error.message || "")
+                );
+            } finally {
+                historyCopyBtn.disabled = false;
+            }
+        });
+
+        /* ==========================================
+           下载 Markdown
+        ========================================== */
+
+        historyDownloadBtn.addEventListener("click", function () {
+            const record = getCurrentRecord();
+            const markdown = getCurrentMarkdown();
+
+            if (!record) {
+                alert("尚未读取到当前历史记录。");
+                return;
+            }
+
+            if (!markdown) {
+                alert("当前记录没有可下载的攻略正文。");
+                return;
+            }
+
+            historyDownloadBtn.disabled = true;
+
+            try {
+                const destination = sanitizeFileName(
+                    record.destination || "旅行攻略"
+                );
+
+                const days = record.days
+                    ? String(record.days) + "天"
+                    : "";
+
+                const dateText = createDateForFileName(record.created_at);
+
+                const fileNameParts = [
+                    destination,
+                    days,
+                    dateText
+                ].filter(Boolean);
+
+                const fileName =
+                    sanitizeFileName(fileNameParts.join("-")) + ".md";
+
+                /*
+                 * 在文件开头加入 UTF-8 BOM，
+                 * 可减少 Windows 软件打开中文 Markdown 时出现乱码的概率。
+                 */
+                const blob = new Blob(
+                    ["\uFEFF", markdown],
+                    {
+                        type: "text/markdown;charset=utf-8"
+                    }
+                );
+
+                const downloadUrl = URL.createObjectURL(blob);
+                const link = document.createElement("a");
+
+                link.href = downloadUrl;
+                link.download = fileName;
+                link.style.display = "none";
+
+                document.body.appendChild(link);
+                link.click();
+                link.remove();
+
+                window.setTimeout(function () {
+                    URL.revokeObjectURL(downloadUrl);
+                }, 1000);
+
+                showTemporaryButtonText(
+                    historyDownloadBtn,
+                    "下载完成 ✓",
+                    1600
+                );
+            } catch (error) {
+                console.error("下载攻略失败：", error);
+
+                alert(
+                    "下载失败。\n\n" +
+                    (error.message || "请稍后重试")
+                );
+            } finally {
+                historyDownloadBtn.disabled = false;
+            }
+        });
+
+        /* ==========================================
+           删除历史记录
+        ========================================== */
+
+        historyDeleteBtn.addEventListener("click", async function () {
+            const record = getCurrentRecord();
+
+            if (!record || record.id === undefined || record.id === null) {
+                alert("没有找到需要删除的记录 ID。");
+                return;
+            }
+
+            const destination =
+                record.destination ||
+                "这条旅行攻略";
+
+            const confirmed = window.confirm(
+                "确定删除“" +
+                destination +
+                "”的历史攻略吗？\n\n" +
+                "记录 ID：#" +
+                record.id +
+                "\n\n删除后无法恢复。"
+            );
+
+            if (!confirmed) {
+                return;
+            }
+
+            const originalText = historyDeleteBtn.textContent;
+
+            historyDeleteBtn.disabled = true;
+            historyCopyBtn.disabled = true;
+            historyDownloadBtn.disabled = true;
+            historyDeleteBtn.textContent = "正在删除...";
+
+            try {
+                const response = await fetch(
+                    "/api/travel-records/" +
+                    encodeURIComponent(record.id),
+                    {
+                        method: "DELETE",
+                        headers: {
+                            "Accept": "application/json"
+                        }
+                    }
+                );
+
+                await parseApiResponse(response);
+
+                /*
+                 * 先清空当前数据，防止继续操作已经删除的记录。
+                 */
+                window.currentHistoryRecord = null;
+                window.currentHistoryMarkdown = "";
+
+                closeHistoryDialog();
+                refreshHistoryRecords();
+
+                alert("历史攻略已删除。");
+            } catch (error) {
+                console.error("删除历史攻略失败：", error);
+
+                alert(
+                    "删除失败：\n" +
+                    (error.message || "请检查后端服务是否正常运行")
+                );
+            } finally {
+                historyDeleteBtn.textContent = originalText;
+                historyDeleteBtn.disabled = false;
+                historyCopyBtn.disabled = false;
+                historyDownloadBtn.disabled = false;
+            }
+        });
+    });
+</script>
+
 </body>
 </html>

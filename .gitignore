@@ -1,58 +1,52 @@
-# Python 缓存
+# Python cache
 __pycache__/
 *.py[cod]
 *$py.class
 
-# Python 虚拟环境
+# Virtual environments
 venv/
 .venv/
 env/
 .envs/
-ai-babyname-env/
 
-# 环境变量和敏感配置
+# Environment variables and secrets
 .env
-.env.local
-.env.development
-.env.production
-.env.test
+.env.*
 !.env.example
 
-# PyCharm / IntelliJ
+# IDEs
 .idea/
 *.iml
-
-# VS Code
 .vscode/
 
-# 系统文件
+# OS files
 .DS_Store
 Thumbs.db
 desktop.ini
 
-# 日志
+# Logs
 *.log
 logs/
 
-# 测试和缓存
+# Test and tool caches
 .pytest_cache/
 .mypy_cache/
+.ruff_cache/
 .coverage
 htmlcov/
 
-# Python 打包文件
+# Python build artifacts
 build/
 dist/
 *.egg-info/
 
-# 数据库和备份文件
+# Local databases and backups
 *.db
 *.sqlite
 *.sqlite3
-*.sql
 *.bak
 
-# 临时文件
+# Temporary files
 *.tmp
 *.temp
 ~$*

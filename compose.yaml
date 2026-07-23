@@ -1,0 +1,12 @@
+services:
+  app:
+    build: .
+    image: ai-travel:latest
+    container_name: ai-travel-app
+    ports:
+      - "8000:8000"
+    env_file:
+      - .env
+    environment:
+      MYSQL_HOST: host.docker.internal
+    restart: unless-stopped

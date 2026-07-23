@@ -1,29 +1,44 @@
+import logging
 import os
 from pathlib import Path
+from typing import Any
 
 import pymysql
 from dotenv import load_dotenv
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from openai import OpenAI
 from pydantic import BaseModel, Field
 
 
-# 获取项目所在目录，并读取同一目录下的 .env 文件
+# =========================
+# 基础配置
+# =========================
+
 BASE_DIR = Path(__file__).resolve().parent
 load_dotenv(BASE_DIR / ".env")
 
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s [%(levelname)s] %(message)s"
+)
+
+logger = logging.getLogger(__name__)
+
 
 def get_required_env(name: str) -> str:
-    """读取必填环境变量，未配置时立即给出明确错误。"""
+    """读取必填环境变量。"""
     value = os.getenv(name)
+
     if not value:
-        raise RuntimeError(f"缺少环境变量：{name}，请检查 .env 文件")
+        raise RuntimeError(
+            f"缺少环境变量：{name}，请检查项目根目录下的 .env 文件"
+        )
+
     return value
 
 
-# 从 .env 读取 DeepSeek 和 MySQL 配置
 DEEPSEEK_API_KEY = get_required_env("DEEPSEEK_API_KEY")
 
 MYSQL_HOST = os.getenv("MYSQL_HOST", "127.0.0.1")
@@ -33,32 +48,37 @@ MYSQL_PASSWORD = get_required_env("MYSQL_PASSWORD")
 MYSQL_DATABASE = os.getenv("MYSQL_DATABASE", "ai_travel")
 
 
+# =========================
+# FastAPI 应用
+# =========================
 
 app = FastAPI(
-    title="AI旅游攻略生成系统",
+    title="AI Travel 智能旅行规划助手",
     description="基于 FastAPI、DeepSeek 和 MySQL 的 AI 旅游攻略项目",
     version="1.0.0"
 )
 
 FRONTEND_DIR = BASE_DIR / "frontend"
 
+if FRONTEND_DIR.exists():
+    app.mount(
+        "/frontend",
+        StaticFiles(directory=str(FRONTEND_DIR), html=True),
+        name="frontend"
+    )
 
-app.mount(
-    "/frontend",
-    StaticFiles(directory=str(FRONTEND_DIR), html=True),
-    name="frontend"
-)
-# 允许前1端页面访问后端接口
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
-    allow_credentials=True,
+    allow_credentials=False,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
+
 # =========================
-# 3. 创建 DeepSeek 客户端
+# DeepSeek 客户端
 # =========================
 
 client = OpenAI(
@@ -66,30 +86,79 @@ client = OpenAI(
     base_url="https://api.deepseek.com"
 )
 
+
 # =========================
-# 4. 定义请求数据格式
+# 请求数据模型
 # =========================
 
 class TravelRequest(BaseModel):
-    destination: str = Field(..., min_length=1, max_length=50, description="旅游目的地")
-    days: int = Field(..., ge=1, le=30, description="旅游天数")
-    budget: str = Field(..., min_length=1, max_length=50, description="旅游预算")
-    preference: str = Field(..., min_length=1, max_length=200, description="旅游偏好")
+    destination: str = Field(
+        ...,
+        min_length=1,
+        max_length=50,
+        description="旅游目的地"
+    )
+    days: int = Field(
+        ...,
+        ge=1,
+        le=30,
+        description="旅游天数"
+    )
+    budget: str = Field(
+        ...,
+        min_length=1,
+        max_length=50,
+        description="旅游预算"
+    )
+    preference: str = Field(
+        ...,
+        min_length=1,
+        max_length=200,
+        description="旅游偏好"
+    )
+
 
 class ChatRequest(BaseModel):
-    message: str
-    travel_plan: str = ""
-    destination: str = ""
-    days: int = 1
-    budget: str = ""
-    preference: str = ""
+    message: str = Field(
+        ...,
+        min_length=1,
+        max_length=2000,
+        description="用户问题"
+    )
+    travel_plan: str = Field(
+        default="",
+        max_length=30000,
+        description="当前旅游攻略"
+    )
+    destination: str = Field(
+        default="",
+        max_length=50,
+        description="旅游目的地"
+    )
+    days: int = Field(
+        default=1,
+        ge=1,
+        le=30,
+        description="旅行天数"
+    )
+    budget: str = Field(
+        default="",
+        max_length=50,
+        description="旅行预算"
+    )
+    preference: str = Field(
+        default="",
+        max_length=200,
+        description="旅行偏好"
+    )
 
 
-
-
-
+# =========================
+# 数据库工具
+# =========================
 
 def get_db_connection():
+    """创建 MySQL 数据库连接。"""
     return pymysql.connect(
         host=MYSQL_HOST,
         port=MYSQL_PORT,
@@ -97,12 +166,18 @@ def get_db_connection():
         password=MYSQL_PASSWORD,
         database=MYSQL_DATABASE,
         charset="utf8mb4",
-        cursorclass=pymysql.cursors.DictCursor
+        cursorclass=pymysql.cursors.DictCursor,
+        autocommit=False
     )
 
 
+def normalize_text(value: str) -> str:
+    """清理用户输入两端的空白字符。"""
+    return value.strip()
+
+
 # =========================
-# 6. 测试接口
+# 基础接口
 # =========================
 
 @app.get("/")
@@ -112,42 +187,91 @@ def home():
         "message": "AI旅游攻略后端运行成功"
     }
 
+
+@app.get("/api/health")
+def health_check():
+    """检查应用和数据库是否正常。"""
+    connection = None
+
+    try:
+        connection = get_db_connection()
+
+        with connection.cursor() as cursor:
+            cursor.execute("SELECT 1")
+            cursor.fetchone()
+
+        return {
+            "code": 0,
+            "message": "服务正常",
+            "data": {
+                "database": "connected"
+            }
+        }
+
+    except Exception:
+        logger.exception("健康检查失败")
+
+        return {
+            "code": 1,
+            "message": "数据库连接失败",
+            "data": {
+                "database": "disconnected"
+            }
+        }
+
+    finally:
+        if connection:
+            connection.close()
+
+
 # =========================
-# 7. AI旅游攻略接口
+# 生成旅游攻略
 # =========================
 
 @app.post("/api/travel")
 def generate_travel_plan(request: TravelRequest):
+    destination = normalize_text(request.destination)
+    budget = normalize_text(request.budget)
+    preference = normalize_text(request.preference)
+
     try:
         prompt = f"""
 你是一名专业、实用的旅游规划师。
 
-请根据以下信息，生成一份详细的旅游攻略：
+请根据以下信息，生成一份详细、清晰、可执行的旅游攻略：
 
-旅游目的地：{request.destination}
+旅游目的地：{destination}
 旅游天数：{request.days}天
-旅游预算：{request.budget}
-旅游偏好：{request.preference}
+旅游预算：{budget}
+旅游偏好：{preference}
 
 请按照以下结构输出：
 
-一、行程总览
-二、每天的详细行程安排
-三、推荐景点及推荐理由
-四、当地特色美食
-五、交通建议
-六、住宿建议
-七、预算分配建议
-八、旅游注意事项
+# 一、行程总览
+
+# 二、每天的详细行程安排
+
+# 三、推荐景点及推荐理由
+
+# 四、当地特色美食
+
+# 五、交通建议
+
+# 六、住宿建议
+
+# 七、预算分配建议
+
+# 八、旅游注意事项
 
 要求：
 1. 内容真实、合理、易于执行；
 2. 行程安排不要过于紧凑；
 3. 语言清晰，适合普通游客阅读；
-4. 不要输出与旅游无关的内容。
+4. 尽量给出时间段和顺序建议；
+5. 涉及价格、营业时间和交通时，提醒用户以官方最新信息为准；
+6. 不要输出与旅游无关的内容。
 """
 
-        # 调用 DeepSeek
         response = client.chat.completions.create(
             model="deepseek-chat",
             messages=[
@@ -163,12 +287,16 @@ def generate_travel_plan(request: TravelRequest):
             temperature=0.7
         )
 
-        travel_plan = response.choices[0].message.content
+        travel_plan = response.choices[0].message.content or ""
 
-        # 保存到 MySQL
-        connection = get_db_connection()
+        if not travel_plan.strip():
+            raise RuntimeError("DeepSeek 返回了空攻略")
+
+        connection = None
 
         try:
+            connection = get_db_connection()
+
             with connection.cursor() as cursor:
                 sql = """
                     INSERT INTO travel_records
@@ -179,48 +307,226 @@ def generate_travel_plan(request: TravelRequest):
                 cursor.execute(
                     sql,
                     (
-                        request.destination,
+                        destination,
                         request.days,
-                        request.budget,
-                        request.preference,
+                        budget,
+                        preference,
                         travel_plan
                     )
                 )
 
+                record_id = cursor.lastrowid
+
             connection.commit()
 
+        except Exception:
+            if connection:
+                connection.rollback()
+
+            raise
+
         finally:
-            connection.close()
+            if connection:
+                connection.close()
 
         return {
             "code": 0,
             "message": "旅游攻略生成成功",
             "data": {
-                "destination": request.destination,
+                "id": record_id,
+                "destination": destination,
                 "days": request.days,
-                "budget": request.budget,
-                "preference": request.preference,
+                "budget": budget,
+                "preference": preference,
                 "travel_plan": travel_plan
             }
         }
 
-    except Exception as error:
+    except Exception:
+        logger.exception("旅游攻略生成失败")
+
         return {
             "code": 1,
-            "message": "旅游攻略生成失败",
-            "error": str(error)
+            "message": "旅游攻略生成失败，请检查 DeepSeek 配置或数据库连接"
         }
 
 
+# =========================
+# 历史攻略接口
+# =========================
+
+@app.get("/api/travel-records")
+def get_travel_records(
+    limit: int = Query(
+        default=20,
+        ge=1,
+        le=100,
+        description="返回记录数量"
+    )
+):
+    """按创建时间倒序查询历史攻略列表。"""
+    connection = None
+
+    try:
+        connection = get_db_connection()
+
+        with connection.cursor() as cursor:
+            sql = """
+                SELECT
+                    id,
+                    destination,
+                    days,
+                    budget,
+                    preference,
+                    created_at
+                FROM travel_records
+                ORDER BY created_at DESC, id DESC
+                LIMIT %s
+            """
+
+            cursor.execute(sql, (limit,))
+            records = cursor.fetchall()
+
+        return {
+            "code": 0,
+            "message": "历史攻略获取成功",
+            "data": records
+        }
+
+    except Exception:
+        logger.exception("获取历史攻略失败")
+
+        return {
+            "code": 1,
+            "message": "历史攻略获取失败，请稍后重试"
+        }
+
+    finally:
+        if connection:
+            connection.close()
+
+
+@app.get("/api/travel-records/{record_id}")
+def get_travel_record(record_id: int):
+    """查询单条历史攻略详情。"""
+    connection = None
+
+    try:
+        connection = get_db_connection()
+
+        with connection.cursor() as cursor:
+            sql = """
+                SELECT
+                    id,
+                    destination,
+                    days,
+                    budget,
+                    preference,
+                    travel_plan,
+                    created_at
+                FROM travel_records
+                WHERE id = %s
+            """
+
+            cursor.execute(sql, (record_id,))
+            record = cursor.fetchone()
+
+        if not record:
+            raise HTTPException(
+                status_code=404,
+                detail="没有找到对应的旅游攻略"
+            )
+
+        return {
+            "code": 0,
+            "message": "攻略详情获取成功",
+            "data": record
+        }
+
+    except HTTPException:
+        raise
+
+    except Exception:
+        logger.exception("获取攻略详情失败")
+
+        return {
+            "code": 1,
+            "message": "攻略详情获取失败，请稍后重试"
+        }
+
+    finally:
+        if connection:
+            connection.close()
+
+
+@app.delete("/api/travel-records/{record_id}")
+def delete_travel_record(record_id: int):
+    """删除单条历史攻略。"""
+    connection = None
+
+    try:
+        connection = get_db_connection()
+
+        with connection.cursor() as cursor:
+            cursor.execute(
+                "DELETE FROM travel_records WHERE id = %s",
+                (record_id,)
+            )
+
+            deleted_count = cursor.rowcount
+
+        if deleted_count == 0:
+            connection.rollback()
+
+            raise HTTPException(
+                status_code=404,
+                detail="没有找到对应的旅游攻略"
+            )
+
+        connection.commit()
+
+        return {
+            "code": 0,
+            "message": "攻略删除成功",
+            "data": {
+                "id": record_id
+            }
+        }
+
+    except HTTPException:
+        raise
+
+    except Exception:
+        if connection:
+            connection.rollback()
+
+        logger.exception("删除攻略失败")
+
+        return {
+            "code": 1,
+            "message": "攻略删除失败，请稍后重试"
+        }
+
+    finally:
+        if connection:
+            connection.close()
+
+
+# =========================
+# 旅行应急助手聊天
+# =========================
+
 @app.post("/api/chat")
 def travel_chat(request: ChatRequest):
-    try:
-        if not request.message.strip():
-            return {
-                "code": 1,
-                "message": "请输入你的问题"
-            }
+    message = normalize_text(request.message)
 
+    if not message:
+        return {
+            "code": 1,
+            "message": "请输入你的问题"
+        }
+
+    try:
         system_prompt = """
 你是一名专业、可靠、细心的旅行应急助手。
 
@@ -257,7 +563,7 @@ def travel_chat(request: ChatRequest):
 {request.travel_plan}
 
 用户现在遇到的问题：
-{request.message}
+{message}
 
 请根据以上信息，给出具体的解决方案。
 如果原来的行程需要调整，请列出调整后的行程安排。
@@ -279,7 +585,10 @@ def travel_chat(request: ChatRequest):
             max_tokens=2000
         )
 
-        answer = response.choices[0].message.content
+        answer = response.choices[0].message.content or ""
+
+        if not answer.strip():
+            raise RuntimeError("DeepSeek 返回了空回复")
 
         return {
             "code": 0,
@@ -289,9 +598,10 @@ def travel_chat(request: ChatRequest):
             }
         }
 
-    except Exception as e:
+    except Exception:
+        logger.exception("聊天服务调用失败")
+
         return {
             "code": 1,
-            "message": "聊天服务调用失败",
-            "error": str(e)
+            "message": "聊天服务调用失败，请稍后重试"
         }
